@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - CloudShield AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #080d1a;
+            color: #f8fafc;
+        }
+
+        /* خلفية الأرقام السيبرانية المتحركة */
+        #matrixCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -3;
+            opacity: 0.15;
+            pointer-events: none;
+        }
+
+        @keyframes floatGlow1 {
+            0%, 100% { transform: translate(0px, 0px) scale(1); opacity: 0.15; }
+            50% { transform: translate(30px, -20px) scale(1.1); opacity: 0.25; }
+        }
+        @keyframes floatGlow2 {
+            0%, 100% { transform: translate(0px, 0px) scale(1); opacity: 0.12; }
+            50% { transform: translate(-30px, 20px) scale(1.05); opacity: 0.22; }
+        }
+
+        .glow-sphere-1 { animation: floatGlow1 12s infinite ease-in-out; }
+        .glow-sphere-2 { animation: floatGlow2 15s infinite ease-in-out; }
+
+        .glass-card {
+            background: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .glass-card:hover {
+            border-color: rgba(6, 182, 212, 0.3);
+            box-shadow: 0 10px 30px -10px rgba(6, 182, 212, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .cyber-input {
+            background: rgba(3, 7, 18, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.25s ease;
+        }
+        .cyber-input:focus {
+            border-color: #06b6d4;
+            box-shadow: 0 0 20px rgba(6, 182, 212, 0.2);
+        }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #080d1a; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #06b6d4; }
+    </style>
+</head>
+<body class="min-h-screen pb-12 selection:bg-cyan-500 selection:text-slate-950 relative overflow-x-hidden">
+
+    <canvas id="matrixCanvas"></canvas>
+
+    <div class="fixed top-[-10%] left-[-10%] w-[600px] h-[600px] bg-cyan-500/20 rounded-full blur-[140px] pointer-events-none glow-sphere-1"></div>
+    <div class="fixed bottom-[-10%] right-[-10%] w-[600px] h-[600px] bg-blue-600/20 rounded-full blur-[140px] pointer-events-none glow-sphere-2"></div>
+
+    <div class="h-1 w-full bg-gradient-to-r from-cyan-500 via-sky-400 to-indigo-500"></div>
+
+    <nav class="bg-slate-950/60 backdrop-blur-xl border-b border-slate-800/80 px-8 py-4 flex justify-between items-center sticky top-0 z-50 shadow-lg">
+        <div class="flex items-center gap-8">
+            <h1 class="text-xl font-extrabold tracking-tight text-white flex items-center gap-2.5">
+                <div class="p-2 bg-cyan-500/10 border border-cyan-500/30 rounded-xl text-cyan-400">🛡️</div>
+                CloudShield <span class="text-xs bg-cyan-500/10 text-cyan-400 px-2.5 py-0.5 rounded-full border border-cyan-500/20 font-semibold">AI Enterprise</span>
+            </h1>
+
+            <div class="hidden md:flex items-center gap-2 bg-slate-900/80 px-3 py-1 rounded-full border border-slate-800 text-xs font-medium text-slate-300">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>AI Core Online</span>
+            </div>
+
+            <div class="flex gap-1.5 bg-slate-900/80 p-1.5 rounded-2xl border border-slate-800">
+                <a href="{{ url_for('index') }}" class="px-4 py-1.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 font-bold text-xs transition shadow-md shadow-cyan-500/20">Dashboard</a>
+                <a href="{{ url_for('history_page') }}" class="px-4 py-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/60 transition text-xs font-semibold">Scan History</a>
+                <a href="{{ url_for('remediation_page') }}" class="px-4 py-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/60 transition text-xs font-semibold">Fix Generator</a>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-4">
+            <span class="text-slate-400 text-xs font-medium">Welcome, <strong class="text-white">{{ session['username'] }}</strong></span>
+            <a href="{{ url_for('logout') }}" class="bg-red-500/10 hover:bg-red-600 text-red-400 hover:text-white border border-red-500/20 px-4 py-1.5 rounded-xl text-xs font-bold transition duration-200">Logout</a>
+        </div>
+    </nav>
+
+    <div class="container mx-auto px-6 max-w-6xl mt-8 relative z-10">
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="glass-card p-6 rounded-3xl relative overflow-hidden group">
+                <div class="flex justify-between items-start mb-3">
+                    <span class="text-slate-400 text-xs font-bold uppercase tracking-wider">Total Scans Performed</span>
+                    <div class="p-2.5 rounded-2xl bg-cyan-500/10 text-cyan-400 text-lg border border-cyan-500/20 group-hover:scale-110 transition">📊</div>
+                </div>
+                <strong class="text-4xl text-white font-extrabold tracking-tight counter" data-target="{{ stats.total }}">0</strong>
+                <p class="text-slate-500 text-[11px] mt-2 font-medium">Recorded in active database session</p>
+            </div>
+
+            <div class="glass-card p-6 rounded-3xl relative overflow-hidden group">
+                <div class="flex justify-between items-start mb-3">
+                    <span class="text-slate-400 text-xs font-bold uppercase tracking-wider">Safe Targets</span>
+                    <div class="p-2.5 rounded-2xl bg-emerald-500/10 text-emerald-400 text-lg border border-emerald-500/20 group-hover:scale-110 transition">🛡️</div>
+                </div>
+                <strong class="text-4xl text-emerald-400 font-extrabold tracking-tight counter" data-target="{{ stats.safe }}">0</strong>
+                <p class="text-slate-500 text-[11px] mt-2 font-medium">Verified compliant & secure</p>
+            </div>
+
+            <div class="glass-card p-6 rounded-3xl relative overflow-hidden group">
+                <div class="flex justify-between items-start mb-3">
+                    <span class="text-slate-400 text-xs font-bold uppercase tracking-wider">Risky / Vulnerabilities</span>
+                    <div class="p-2.5 rounded-2xl bg-rose-500/10 text-rose-400 text-lg border border-rose-500/20 group-hover:scale-110 transition">⚠️</div>
+                </div>
+                <strong class="text-4xl text-rose-400 font-extrabold tracking-tight counter" data-target="{{ stats.risk }}">0</strong>
+                <p class="text-slate-500 text-[11px] mt-2 font-medium">Requires patch generation</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <div class="lg:col-span-2 glass-card p-8 rounded-3xl flex flex-col justify-between relative overflow-hidden">
+                <div class="absolute -top-24 -right-24 w-48 h-48 bg-cyan-500/10 rounded-full blur-2xl pointer-events-none"></div>
+                
+                <div>
+                    <span class="text-cyan-400 text-xs font-bold uppercase tracking-widest block mb-1">AI Target Intelligence</span>
+                    <h2 class="text-2xl font-black text-white mb-2">Advanced Security Scanner</h2>
+                    <p class="text-slate-400 text-xs leading-relaxed mb-6">Analyze SSL certificate validity, HTTP headers configuration, and generate instant AI patches.</p>
+                </div>
+
+                <form method="POST" class="flex gap-3 w-full" onsubmit="showLoading()">
+                    <input type="text" name="target_url" placeholder="https://example.com" required 
+                        class="cyber-input flex-1 p-4 rounded-2xl text-slate-100 placeholder:text-slate-600 focus:outline-none text-sm font-mono">
+                    <button type="submit" id="scanBtn" 
+                        class="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 transition-all duration-300 px-8 py-4 rounded-2xl font-extrabold text-slate-950 text-xs shadow-lg shadow-cyan-500/25 active:scale-95 flex items-center justify-center min-w-[140px]">
+                        <span>Deep Scan</span>
+                    </button>
+                </form>
+            </div>
+
+            <div class="glass-card p-6 rounded-3xl flex flex-col items-center justify-center relative">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300 mb-2 self-start flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span> Security Ratio Score
+                </h3>
+
+                <div class="relative w-full h-44 flex justify-center items-center">
+                    <canvas id="securityChart" data-score="{{ scan_result.score if scan_result else 100 }}" data-remaining="{{ 100 - scan_result.score if scan_result else 0 }}"></canvas>
+                    
+                    <div class="absolute flex flex-col items-center justify-center text-center pointer-events-none">
+                        <span id="centerScoreText" class="text-3xl font-extrabold text-cyan-400 tracking-tight">0%</span>
+                        <span class="text-[10px] text-slate-400 font-semibold tracking-wider uppercase">Score</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if scan_result %}
+        <div id="auditResultSection" class="glass-card p-8 rounded-3xl shadow-2xl mb-8 border-cyan-500/30">
+            <div class="flex justify-between items-center border-b border-slate-800/80 pb-5 mb-6">
+                <div>
+                    <span class="text-cyan-400 text-xs font-bold uppercase tracking-widest block mb-1">Scan Complete</span>
+                    <h3 class="text-xl font-bold text-white flex items-center gap-2">Comprehensive Audit Summary</h3>
+                </div>
+                
+                <div class="flex items-center gap-3">
+                    <span class="px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider
+                        {% if scan_result.risk_level == 'Safe' %}bg-emerald-500/10 text-emerald-400 border border-emerald-500/20
+                        {% elif scan_result.risk_level == 'Medium Risk' %}bg-amber-500/10 text-amber-400 border border-amber-500/20
+                        {% else %}bg-rose-500/10 text-rose-400 border border-rose-500/20{% endif %}">
+                        {{ scan_result.risk_level }}
+                    </span>
+                    <a href="{{ url_for('export_pdf', scan_id=scan_result.id) }}" class="bg-cyan-500 hover:bg-cyan-400 text-slate-950 px-5 py-2 rounded-xl text-xs font-extrabold transition duration-200 shadow-md shadow-cyan-500/20 active:scale-95">
+                        📄 Export PDF Report
+                    </a>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div class="bg-slate-950/60 p-4 rounded-2xl border border-slate-800/80">
+                    <span class="text-slate-500 text-xs font-semibold block mb-1">Target Domain</span>
+                    <strong class="text-sm text-slate-200 truncate block font-mono">{{ scan_result.domain }}</strong>
+                </div>
+                <div class="bg-slate-950/60 p-4 rounded-2xl border border-slate-800/80">
+                    <span class="text-slate-500 text-xs font-semibold block mb-1">HTTP Response Code</span>
+                    <strong class="text-base text-emerald-400 font-mono">{{ scan_result.status_code }}</strong>
+                </div>
+                <div class="bg-slate-950/60 p-4 rounded-2xl border border-slate-800/80">
+                    <span class="text-slate-500 text-xs font-semibold block mb-1">SSL Certificate</span>
+                    <strong class="text-xs font-semibold {% if 'Valid' in scan_result.ssl_status %}text-emerald-400{% else %}text-rose-400{% endif %}">
+                        {{ scan_result.ssl_status }}
+                    </strong>
+                </div>
+            </div>
+
+            <div class="bg-slate-950/80 p-6 rounded-2xl border border-cyan-500/20 relative overflow-hidden">
+                <div class="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-cyan-400 to-blue-600"></div>
+                <span class="text-cyan-400 text-xs font-bold uppercase tracking-wider block mb-2">
+                    🤖 AI Remediation Insights & Action Steps
+                </span>
+                <p class="text-slate-300 text-xs leading-relaxed font-sans">{{ scan_result.ai_recommendations }}</p>
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+
+    <script>
+        const canvasMatrix = document.getElementById('matrixCanvas');
+        const ctxMatrix = canvasMatrix.getContext('2d');
+
+        function resizeCanvas() {
+            canvasMatrix.width = window.innerWidth;
+            canvasMatrix.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        const chars = '010101010101ABCDEF0123456789X';
+        const fontSize = 14;
+        const columns = Math.floor(canvasMatrix.width / fontSize);
+        const drops = Array(columns).fill(1);
+
+        function drawMatrix() {
+            ctxMatrix.fillStyle = 'rgba(8, 13, 26, 0.15)'; 
+            ctxMatrix.fillRect(0, 0, canvasMatrix.width, canvasMatrix.height);
+
+            ctxMatrix.fillStyle = '#06b6d4'; 
+            ctxMatrix.font = fontSize + 'px monospace';
+
+            for (let i = 0; i < drops.length; i++) {
+                const text = chars.charAt(Math.floor(Math.random() * chars.length));
+                ctxMatrix.fillText(text, i * fontSize, drops[i] * fontSize);
+
+                if (drops[i] * fontSize > canvasMatrix.height && Math.random() > 0.975) {
+                    drops[i] = 0;
+                }
+                drops[i]++;
+            }
+        }
+
+        setInterval(drawMatrix, 45);
+
+        window.addEventListener('DOMContentLoaded', (event) => {
+            const resultSection = document.getElementById('auditResultSection');
+            if (resultSection) {
+                setTimeout(() => {
+                    resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 300);
+            }
+        });
+
+        document.querySelectorAll('.counter').forEach(counter => {
+            const target = +counter.getAttribute('data-target');
+            let count = 0;
+            const speed = target > 0 ? Math.ceil(target / 20) : 1;
+            const updateCount = () => {
+                count += speed;
+                if (count < target) {
+                    counter.innerText = count;
+                    setTimeout(updateCount, 40);
+                } else {
+                    counter.innerText = target;
+                }
+            };
+            updateCount();
+        });
+
+        function showLoading() {
+            const btn = document.getElementById('scanBtn');
+            btn.innerHTML = `<svg class="animate-spin h-4 w-4 text-slate-950 inline-block mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Scanning...`;
+        }
+
+        const canvas = document.getElementById('securityChart');
+        if (canvas) {
+            const targetScore = parseInt(canvas.getAttribute('data-score')) || 0;
+            const targetRemaining = parseInt(canvas.getAttribute('data-remaining')) || 0;
+            const ctx = canvas.getContext('2d');
+
+            const gradient = ctx.createLinearGradient(0, 0, 0, 200);
+            if (targetScore >= 80) {
+                gradient.addColorStop(0, '#10b981');
+                gradient.addColorStop(1, '#06b6d4');
+            } else if (targetScore >= 50) {
+                gradient.addColorStop(0, '#f59e0b');
+                gradient.addColorStop(1, '#ef4444');
+            } else {
+                gradient.addColorStop(0, '#ef4444');
+                gradient.addColorStop(1, '#991b1b');
+            }
+
+            const centerText = document.getElementById('centerScoreText');
+            let currentAnimatedScore = 0;
+
+            function animateText() {
+                if (currentAnimatedScore < targetScore) {
+                    currentAnimatedScore += Math.max(1, Math.ceil(targetScore / 40));
+                    if (currentAnimatedScore > targetScore) currentAnimatedScore = targetScore;
+                    centerText.innerText = currentAnimatedScore + '%';
+                    requestAnimationFrame(animateText);
+                } else {
+                    centerText.innerText = targetScore + '%';
+                }
+            }
+
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Security Score', 'Remaining Gap'],
+                    datasets: [{
+                        data: [targetScore, targetRemaining],
+                        backgroundColor: [gradient, '#1e293b'],
+                        borderWidth: 0,
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '80%',
+                    animation: {
+                        duration: 1500,
+                        easing: 'easeOutQuart',
+                        onProgress: () => animateText()
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { backgroundColor: '#0f172a', titleColor: '#38bdf8', bodyColor: '#e2e8f0' }
+                    }
+                }
+            });
+        }
+    </script>
+    
+    <div id="page-transition-overlay" class="fixed inset-0 bg-[#080d1a] z-[9999] pointer-events-none opacity-100 transition-opacity duration-500"></div>
+    <div id="top-loader" class="fixed top-0 left-0 h-1 bg-gradient-to-r from-cyan-500 via-sky-400 to-indigo-500 z-[10000] transition-all duration-300 w-0"></div>
+
+    <script>
+        window.addEventListener('DOMContentLoaded', () => {
+            const overlay = document.getElementById('page-transition-overlay');
+            overlay.style.opacity = '0';
+            setTimeout(() => { 
+                overlay.style.display = 'none'; 
+            }, 500);
+        });
+
+        document.addEventListener('click', e => {
+            const link = e.target.closest('a');
+            if (link && link.href && link.href.startsWith(window.location.origin) && !link.target && !link.getAttribute('download') && !link.href.includes('#')) {
+                e.preventDefault();
+                const targetUrl = link.href;
+
+                const loader = document.getElementById('top-loader');
+                loader.style.width = '80%';
+
+                const overlay = document.getElementById('page-transition-overlay');
+                overlay.style.display = 'block';
+                setTimeout(() => { 
+                    overlay.style.opacity = '1'; 
+                }, 10);
+
+                setTimeout(() => {
+                    window.location.href = targetUrl;
+                }, 350);
+            }
+        });
+    </script>
+</body>
+</html>

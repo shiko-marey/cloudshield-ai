@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scan History - CloudShield AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #080d1a;
+            color: #f8fafc;
+        }
+
+        /* خلفية الأرقام السيبرانية المتحركة (خفيفة وهادئة) */
+        #matrixCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -3;
+            opacity: 0.15; /* شفافة وهادئة جداً غير مزعجة */
+            pointer-events: none;
+        }
+
+        @keyframes floatGlow1 {
+            0%, 100% { transform: translate(0px, 0px) scale(1); opacity: 0.15; }
+            50% { transform: translate(30px, -20px) scale(1.1); opacity: 0.25; }
+        }
+        @keyframes floatGlow2 {
+            0%, 100% { transform: translate(0px, 0px) scale(1); opacity: 0.12; }
+            50% { transform: translate(-30px, 20px) scale(1.05); opacity: 0.22; }
+        }
+
+        .glow-sphere-1 { animation: floatGlow1 12s infinite ease-in-out; }
+        .glow-sphere-2 { animation: floatGlow2 15s infinite ease-in-out; }
+
+        .glass-card {
+            background: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .cyber-input {
+            background: rgba(3, 7, 18, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.25s ease;
+        }
+        .cyber-input:focus {
+            border-color: #06b6d4;
+            box-shadow: 0 0 20px rgba(6, 182, 212, 0.2);
+        }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #080d1a; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #06b6d4; }
+    </style>
+</head>
+<body class="min-h-screen pb-12 selection:bg-cyan-500 selection:text-slate-950 relative overflow-x-hidden">
+
+    <!-- تأثير الأرقام السيبرانية المتحركة في الخلفية -->
+    <canvas id="matrixCanvas"></canvas>
+
+    <div class="fixed top-[-10%] left-[-10%] w-[600px] h-[600px] bg-cyan-500/20 rounded-full blur-[140px] pointer-events-none glow-sphere-1"></div>
+    <div class="fixed bottom-[-10%] right-[-10%] w-[600px] h-[600px] bg-blue-600/20 rounded-full blur-[140px] pointer-events-none glow-sphere-2"></div>
+
+    <div class="h-1 w-full bg-gradient-to-r from-cyan-500 via-sky-400 to-indigo-500"></div>
+
+    <!-- Navbar -->
+    <nav class="bg-slate-950/60 backdrop-blur-xl border-b border-slate-800/80 px-8 py-4 flex justify-between items-center sticky top-0 z-50 shadow-lg">
+        <div class="flex items-center gap-8">
+            <h1 class="text-xl font-extrabold tracking-tight text-white flex items-center gap-2.5">
+                <div class="p-2 bg-cyan-500/10 border border-cyan-500/30 rounded-xl text-cyan-400">🛡️</div>
+                CloudShield <span class="text-xs bg-cyan-500/10 text-cyan-400 px-2.5 py-0.5 rounded-full border border-cyan-500/20 font-semibold">AI Enterprise</span>
+            </h1>
+
+            <div class="hidden md:flex items-center gap-2 bg-slate-900/80 px-3 py-1 rounded-full border border-slate-800 text-xs font-medium text-slate-300">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>AI Core Online</span>
+            </div>
+
+            <div class="flex gap-1.5 bg-slate-900/80 p-1.5 rounded-2xl border border-slate-800">
+                <a href="{{ url_for('index') }}" class="px-4 py-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/60 transition text-xs font-semibold">Dashboard</a>
+                <a href="{{ url_for('history_page') }}" class="px-4 py-1.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 font-bold text-xs transition shadow-md shadow-cyan-500/20">Scan History</a>
+                <a href="{{ url_for('remediation_page') }}" class="px-4 py-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/60 transition text-xs font-semibold">Fix Generator</a>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-4">
+            <span class="text-slate-400 text-xs font-medium">Welcome, <strong class="text-white">{{ session.get('username', 'User') }}</strong></span>
+            <a href="{{ url_for('logout') }}" class="bg-red-500/10 hover:bg-red-600 text-red-400 hover:text-white border border-red-500/20 px-4 py-1.5 rounded-xl text-xs font-bold transition duration-200">Logout</a>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container mx-auto px-6 max-w-6xl mt-8 relative z-10 flex flex-col gap-6">
+        
+        <div class="glass-card p-8 rounded-3xl flex flex-col md:flex-row justify-between items-center gap-6 w-full">
+            <div>
+                <span class="text-cyan-400 text-xs font-bold uppercase tracking-widest block mb-1">Audit Logs</span>
+                <h2 class="text-2xl font-black text-white">Security Scan History</h2>
+                <p class="text-slate-400 text-xs mt-1">Review all historical domain audits, security scores, and AI recommendations.</p>
+            </div>
+
+            <div class="w-full md:w-72 relative">
+                <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="Filter domains..." 
+                    class="cyber-input w-full pl-10 pr-4 py-3 rounded-2xl text-xs text-slate-200 placeholder:text-slate-600 focus:outline-none font-mono">
+                <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-sm">🔍</span>
+            </div>
+        </div>
+
+        <!-- History Table Section -->
+        <div class="glass-card rounded-3xl overflow-hidden shadow-2xl w-full">
+            <div class="overflow-x-auto w-full">
+                <table class="w-full text-left border-collapse" id="historyTable">
+                    <thead>
+                        <tr class="bg-slate-950/80 border-b border-slate-800/80 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                            <th class="p-5 pl-8">Target Domain</th>
+                            <th class="p-5">HTTP Status</th>
+                            <th class="p-5">SSL Certificate</th>
+                            <th class="p-5">Score</th>
+                            <th class="p-5">Risk Level</th>
+                            <th class="p-5 text-right pr-8">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-800/60 text-xs">
+                        {% if history and history|length > 0 %}
+                            {% for scan in history %}
+                            <tr class="hover:bg-slate-800/30 transition duration-150 group">
+                                <td class="p-5 pl-8 font-mono font-semibold text-cyan-300">
+                                    {{ scan.domain }}
+                                </td>
+                                <td class="p-5">
+                                    {% set status_str = scan.status_code|string %}
+                                    <span class="font-mono px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800 font-bold
+                                        {% if 'Failed' in status_str or 'Error' in status_str or status_str.startswith('4') or status_str.startswith('5') %}text-rose-400{% else %}text-emerald-400{% endif %}">
+                                        {{ scan.status_code }}
+                                    </span>
+                                </td>
+                                <td class="p-5 font-medium">
+                                    {% if 'Valid' in scan.ssl_status or 'Active' in scan.ssl_status %}
+                                        <span class="text-emerald-400 flex items-center gap-1.5">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> {{ scan.ssl_status }}
+                                        </span>
+                                    {% else %}
+                                        <span class="text-rose-400 flex items-center gap-1.5">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span> {{ scan.ssl_status }}
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td class="p-5">
+                                    <span class="font-bold text-sm font-mono {% if scan.security_score >= 80 %}text-emerald-400{% elif scan.security_score >= 50 %}text-amber-400{% else %}text-rose-400{% endif %}">
+                                        {{ scan.security_score }}%
+                                    </span>
+                                </td>
+                                <td class="p-5">
+                                    <span class="px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider
+                                        {% if scan.risk_level == 'Safe' %}bg-emerald-500/10 text-emerald-400 border border-emerald-500/20
+                                        {% elif scan.risk_level == 'Medium Risk' %}bg-amber-500/10 text-amber-400 border border-amber-500/20
+                                        {% else %}bg-rose-500/10 text-rose-400 border border-rose-500/20{% endif %}">
+                                        {{ scan.risk_level }}
+                                    </span>
+                                </td>
+                                <td class="p-5 text-right pr-8">
+                                    <a href="{{ url_for('export_pdf', scan_id=scan.id) }}" 
+                                        class="bg-cyan-500/10 hover:bg-cyan-500 text-cyan-400 hover:text-slate-950 border border-cyan-500/30 px-3.5 py-1.5 rounded-xl text-xs font-bold transition duration-200 inline-flex items-center gap-1">
+                                        📄 PDF
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="6" class="p-12 text-center text-slate-400 text-xs">
+                                    <div class="flex flex-col items-center justify-center gap-2">
+                                        <span class="text-3xl">🔍</span>
+                                        <strong class="text-slate-200 text-sm">No scan history found</strong>
+                                        <p class="text-slate-500">Run a target audit from the Dashboard to record scan logs here.</p>
+                                        <a href="{{ url_for('index') }}" class="mt-2 text-cyan-400 font-bold hover:underline">Go to Dashboard ➔</a>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Matrix Rain Background Animation
+        const canvasMatrix = document.getElementById('matrixCanvas');
+        const ctxMatrix = canvasMatrix.getContext('2d');
+
+        function resizeCanvas() {
+            canvasMatrix.width = window.innerWidth;
+            canvasMatrix.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        const chars = '010101010101ABCDEF0123456789X';
+        const fontSize = 14;
+        const columns = Math.floor(canvasMatrix.width / fontSize);
+        const drops = Array(columns).fill(1);
+
+        function drawMatrix() {
+            ctxMatrix.fillStyle = 'rgba(8, 13, 26, 0.15)'; 
+            ctxMatrix.fillRect(0, 0, canvasMatrix.width, canvasMatrix.height);
+
+            ctxMatrix.fillStyle = '#06b6d4'; 
+            ctxMatrix.font = fontSize + 'px monospace';
+
+            for (let i = 0; i < drops.length; i++) {
+                const text = chars.charAt(Math.floor(Math.random() * chars.length));
+                ctxMatrix.fillText(text, i * fontSize, drops[i] * fontSize);
+
+                if (drops[i] * fontSize > canvasMatrix.height && Math.random() > 0.975) {
+                    drops[i] = 0;
+                }
+                drops[i]++;
+            }
+        }
+
+        setInterval(drawMatrix, 45);
+
+        // Filter Table Script
+        function filterTable() {
+            const input = document.getElementById('searchInput');
+            const filter = input.value.toLowerCase();
+            const table = document.getElementById('historyTable');
+            const tr = table.getElementsByTagName('tr');
+
+            for (let i = 1; i < tr.length; i++) {
+                let domainTd = tr[i].getElementsByTagName('td')[0];
+                if (domainTd) {
+                    let textValue = domainTd.textContent || domainTd.innerText;
+                    if (textValue.toLowerCase().indexOf(filter) > -1) {
+                        tr[i].style.display = "";
+                    } else {
+                        tr[i].style.display = "none";
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- تأثير الانتقال السلس وشريط التحميل -->
+    <div id="page-transition-overlay" class="fixed inset-0 bg-[#080d1a] z-[9999] pointer-events-none opacity-100 transition-opacity duration-500"></div>
+    <div id="top-loader" class="fixed top-0 left-0 h-1 bg-gradient-to-r from-cyan-500 via-sky-400 to-indigo-500 z-[10000] transition-all duration-300 w-0"></div>
+
+    <script>
+        window.addEventListener('DOMContentLoaded', () => {
+            const overlay = document.getElementById('page-transition-overlay');
+            overlay.style.opacity = '0';
+            setTimeout(() => { 
+                overlay.style.display = 'none'; 
+            }, 500);
+        });
+
+        document.addEventListener('click', e => {
+            const link = e.target.closest('a');
+            if (link && link.href && link.href.startsWith(window.location.origin) && !link.target && !link.getAttribute('download') && !link.href.includes('#')) {
+                e.preventDefault();
+                const targetUrl = link.href;
+
+                const loader = document.getElementById('top-loader');
+                loader.style.width = '80%';
+
+                const overlay = document.getElementById('page-transition-overlay');
+                overlay.style.display = 'block';
+                setTimeout(() => { 
+                    overlay.style.opacity = '1'; 
+                }, 10);
+
+                setTimeout(() => {
+                    window.location.href = targetUrl;
+                }, 350);
+            }
+        });
+    </script>
+</body>
+</html>

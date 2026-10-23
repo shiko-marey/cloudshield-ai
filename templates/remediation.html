@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fix Generator - CloudShield AI Enterprise</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #080d1a;
+            color: #f8fafc;
+        }
+
+        .code-font {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* خلفية الأرقام السيبرانية المتحركة */
+        #matrixCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -3;
+            opacity: 0.15;
+            pointer-events: none;
+        }
+
+        @keyframes floatGlow1 {
+            0%, 100% { transform: translate(0px, 0px) scale(1); opacity: 0.15; }
+            50% { transform: translate(30px, -20px) scale(1.1); opacity: 0.25; }
+        }
+        @keyframes floatGlow2 {
+            0%, 100% { transform: translate(0px, 0px) scale(1); opacity: 0.12; }
+            50% { transform: translate(-30px, 20px) scale(1.05); opacity: 0.22; }
+        }
+
+        .glow-sphere-1 { animation: floatGlow1 12s infinite ease-in-out; }
+        .glow-sphere-2 { animation: floatGlow2 15s infinite ease-in-out; }
+
+        .glass-card {
+            background: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .terminal-box {
+            background: rgba(3, 7, 18, 0.88);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: inset 0 0 25px rgba(0, 0, 0, 0.6);
+        }
+
+        /* Highlight classes */
+        .token-keyword { color: #f43f5e; font-weight: bold; }
+        .token-header { color: #38bdf8; font-weight: 600; }
+        .token-string { color: #34d399; }
+        .token-flag { color: #fbbf24; }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #080d1a; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #06b6d4; }
+    </style>
+</head>
+<body class="min-h-screen pb-12 selection:bg-cyan-500 selection:text-slate-950 relative overflow-x-hidden">
+
+    <!-- تأثير الأرقام السيبرانية المتحركة في الخلفية -->
+    <canvas id="matrixCanvas"></canvas>
+
+    <div class="fixed top-[-10%] left-[-10%] w-[600px] h-[600px] bg-cyan-500/20 rounded-full blur-[140px] pointer-events-none glow-sphere-1"></div>
+    <div class="fixed bottom-[-10%] right-[-10%] w-[600px] h-[600px] bg-blue-600/20 rounded-full blur-[140px] pointer-events-none glow-sphere-2"></div>
+
+    <div class="h-1 w-full bg-gradient-to-r from-cyan-500 via-sky-400 to-indigo-500"></div>
+
+    <!-- Navbar -->
+    <nav class="bg-slate-950/60 backdrop-blur-xl border-b border-slate-800/80 px-8 py-4 flex justify-between items-center sticky top-0 z-50 shadow-lg">
+        <div class="flex items-center gap-8">
+            <h1 class="text-xl font-extrabold tracking-tight text-white flex items-center gap-2.5">
+                <div class="p-2 bg-cyan-500/10 border border-cyan-500/30 rounded-xl text-cyan-400">🛡️</div>
+                CloudShield <span class="text-xs bg-cyan-500/10 text-cyan-400 px-2.5 py-0.5 rounded-full border border-cyan-500/20 font-semibold">AI Enterprise</span>
+            </h1>
+
+            <div class="hidden md:flex items-center gap-2 bg-slate-900/80 px-3 py-1 rounded-full border border-slate-800 text-xs font-medium text-slate-300">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>AI Core Online</span>
+            </div>
+
+            <div class="flex gap-1.5 bg-slate-900/80 p-1.5 rounded-2xl border border-slate-800">
+                <a href="{{ url_for('index') }}" class="px-4 py-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/60 transition text-xs font-semibold">Dashboard</a>
+                <a href="{{ url_for('history_page') }}" class="px-4 py-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/60 transition text-xs font-semibold">Scan History</a>
+                <a href="{{ url_for('remediation_page') }}" class="px-4 py-1.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 font-bold text-xs transition shadow-md shadow-cyan-500/20">Fix Generator</a>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-4">
+            <span class="text-slate-400 text-xs font-medium">Welcome, <strong class="text-white">{{ session.get('username', 'User') }}</strong></span>
+            <a href="{{ url_for('logout') }}" class="bg-red-500/10 hover:bg-red-600 text-red-400 hover:text-white border border-red-500/20 px-4 py-1.5 rounded-xl text-xs font-bold transition duration-200">Logout</a>
+        </div>
+    </nav>
+
+    <!-- Main Content Container -->
+    <div class="container mx-auto px-6 max-w-5xl mt-8 relative z-10 flex flex-col gap-6">
+
+        <!-- Page Header Card -->
+        <div class="glass-card p-8 rounded-3xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 w-full">
+            <div>
+                <span class="text-cyan-400 text-xs font-bold uppercase tracking-widest block mb-1">Auto-Remediation Engine</span>
+                <h2 class="text-2xl font-black text-white flex items-center gap-3">
+                    Automated Security Fix Snippets ⚡
+                </h2>
+                <p class="text-slate-400 text-xs mt-1">Ready-to-deploy hardened security configurations for your target environment.</p>
+            </div>
+
+            <div class="bg-slate-900/90 border border-slate-800 px-4 py-2.5 rounded-2xl flex items-center gap-2.5 shadow-inner">
+                <span class="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
+                <span class="text-slate-500 text-xs font-medium">Target:</span>
+                <span class="text-cyan-300 font-mono font-bold text-xs">{{ domain }}</span>
+            </div>
+        </div>
+
+        <!-- Deployment Guide Banner -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <div class="glass-card p-4 rounded-2xl flex items-center gap-3 border-l-2 border-l-cyan-400">
+                <span class="w-6 h-6 rounded-lg bg-cyan-500/10 text-cyan-400 flex items-center justify-center font-mono font-bold text-xs">1</span>
+                <div>
+                    <strong class="text-xs text-white block">Copy Config</strong>
+                    <span class="text-[10px] text-slate-500">Select target server rules</span>
+                </div>
+            </div>
+            <div class="glass-card p-4 rounded-2xl flex items-center gap-3 border-l-2 border-l-blue-400">
+                <span class="w-6 h-6 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center font-mono font-bold text-xs">2</span>
+                <div>
+                    <strong class="text-xs text-white block">SSH Access</strong>
+                    <span class="text-[10px] text-slate-500">Open server terminal</span>
+                </div>
+            </div>
+            <div class="glass-card p-4 rounded-2xl flex items-center gap-3 border-l-2 border-l-indigo-400">
+                <span class="w-6 h-6 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center font-mono font-bold text-xs">3</span>
+                <div>
+                    <strong class="text-xs text-white block">Paste & Save</strong>
+                    <span class="text-[10px] text-slate-500">Update configuration file</span>
+                </div>
+            </div>
+            <div class="glass-card p-4 rounded-2xl flex items-center gap-3 border-l-2 border-l-emerald-400">
+                <span class="w-6 h-6 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-mono font-bold text-xs">4</span>
+                <div>
+                    <strong class="text-xs text-white block">Reload Service</strong>
+                    <span class="text-[10px] text-slate-500">Apply patches live</span>
+                </div>
+            </div>
+        </div>
+
+        {% if remediation %}
+            <!-- Nginx Fix Snippet Card -->
+            <div class="glass-card rounded-3xl p-6 flex flex-col gap-4 shadow-2xl relative overflow-hidden">
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center gap-3">
+                        <div class="flex gap-1.5">
+                            <span class="w-3 h-3 rounded-full bg-rose-500/80 inline-block"></span>
+                            <span class="w-3 h-3 rounded-full bg-amber-500/80 inline-block"></span>
+                            <span class="w-3 h-3 rounded-full bg-emerald-500/80 inline-block"></span>
+                        </div>
+                        <h3 class="text-xs font-bold text-slate-200 uppercase tracking-wider font-mono flex items-center gap-2">
+                            <span>🟩 NGINX CONFIGURATION PATCH</span>
+                        </h3>
+                    </div>
+
+                    <div class="flex gap-2">
+                        <button onclick="downloadConfig('nginxCode', 'nginx_security.conf')" class="bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5">
+                            ⬇️ <span>Download</span>
+                        </button>
+                        <button onclick="copyCode('nginxCode', this)" class="bg-cyan-500/10 hover:bg-cyan-500 text-cyan-400 hover:text-slate-950 border border-cyan-500/30 px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5">
+                            📋 <span>Copy Snippet</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="terminal-box p-5 rounded-2xl overflow-x-auto">
+                    <pre id="nginxCode" class="code-font text-xs text-emerald-400 leading-relaxed"><code><span class="token-keyword">add_header</span> <span class="token-header">Strict-Transport-Security</span> <span class="token-string">"max-age=31536000; includeSubDomains"</span> <span class="token-flag">always</span>;
+<span class="token-keyword">add_header</span> <span class="token-header">Content-Security-Policy</span> <span class="token-string">"default-src 'self';"</span> <span class="token-flag">always</span>;
+<span class="token-keyword">add_header</span> <span class="token-header">X-Frame-Options</span> <span class="token-string">"SAMEORIGIN"</span> <span class="token-flag">always</span>;
+<span class="token-keyword">add_header</span> <span class="token-header">X-Content-Type-Options</span> <span class="token-string">"nosniff"</span> <span class="token-flag">always</span>;</code></pre>
+                </div>
+            </div>
+
+            <!-- Apache Fix Snippet Card -->
+            <div class="glass-card rounded-3xl p-6 flex flex-col gap-4 shadow-2xl relative overflow-hidden">
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center gap-3">
+                        <div class="flex gap-1.5">
+                            <span class="w-3 h-3 rounded-full bg-rose-500/80 inline-block"></span>
+                            <span class="w-3 h-3 rounded-full bg-amber-500/80 inline-block"></span>
+                            <span class="w-3 h-3 rounded-full bg-emerald-500/80 inline-block"></span>
+                        </div>
+                        <h3 class="text-xs font-bold text-slate-200 uppercase tracking-wider font-mono flex items-center gap-2">
+                            <span>🟥 APACHE (.HTACCESS) PATCH</span>
+                        </h3>
+                    </div>
+
+                    <div class="flex gap-2">
+                        <button onclick="downloadConfig('apacheCode', '.htaccess')" class="bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5">
+                            ⬇️ <span>Download</span>
+                        </button>
+                        <button onclick="copyCode('apacheCode', this)" class="bg-cyan-500/10 hover:bg-cyan-500 text-cyan-400 hover:text-slate-950 border border-cyan-500/30 px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5">
+                            📋 <span>Copy Snippet</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="terminal-box p-5 rounded-2xl overflow-x-auto">
+                    <pre id="apacheCode" class="code-font text-xs text-amber-300 leading-relaxed"><code><span class="token-keyword">Header always set</span> <span class="token-header">Strict-Transport-Security</span> <span class="token-string">"max-age=31536000; includeSubDomains"</span>
+<span class="token-keyword">Header always set</span> <span class="token-header">Content-Security-Policy</span> <span class="token-string">"default-src 'self'"</span>
+<span class="token-keyword">Header always set</span> <span class="token-header">X-Frame-Options</span> <span class="token-string">"SAMEORIGIN"</span>
+<span class="token-keyword">Header always set</span> <span class="token-header">X-Content-Type-Options</span> <span class="token-string">"nosniff"</span></code></pre>
+                </div>
+            </div>
+        {% else %}
+            <!-- Empty State Card -->
+            <div class="glass-card rounded-3xl p-12 text-center flex flex-col items-center justify-center gap-4">
+                <div class="p-4 bg-slate-900/80 rounded-2xl border border-slate-800 text-4xl">🛠️</div>
+                <div>
+                    <h3 class="text-lg font-bold text-white">No Fix Snippets Generated Yet</h3>
+                    <p class="text-slate-400 text-xs mt-1">Please perform a security audit on your target domain from the Dashboard first.</p>
+                </div>
+                <a href="{{ url_for('index') }}" class="mt-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 font-bold px-6 py-2.5 rounded-xl text-xs transition hover:shadow-lg hover:shadow-cyan-500/20">
+                    Go to Dashboard ➔
+                </a>
+            </div>
+        {% endif %}
+
+    </div>
+
+    <!-- Script Matrix Background & Actions -->
+    <script>
+        const canvasMatrix = document.getElementById('matrixCanvas');
+        const ctxMatrix = canvasMatrix.getContext('2d');
+
+        function resizeCanvas() {
+            canvasMatrix.width = window.innerWidth;
+            canvasMatrix.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        const chars = '010101010101ABCDEF0123456789X';
+        const fontSize = 14;
+        const columns = Math.floor(canvasMatrix.width / fontSize);
+        const drops = Array(columns).fill(1);
+
+        function drawMatrix() {
+            ctxMatrix.fillStyle = 'rgba(8, 13, 26, 0.15)'; 
+            ctxMatrix.fillRect(0, 0, canvasMatrix.width, canvasMatrix.height);
+
+            ctxMatrix.fillStyle = '#06b6d4'; 
+            ctxMatrix.font = fontSize + 'px monospace';
+
+            for (let i = 0; i < drops.length; i++) {
+                const text = chars.charAt(Math.floor(Math.random() * chars.length));
+                ctxMatrix.fillText(text, i * fontSize, drops[i] * fontSize);
+
+                if (drops[i] * fontSize > canvasMatrix.height && Math.random() > 0.975) {
+                    drops[i] = 0;
+                }
+                drops[i]++;
+            }
+        }
+
+        setInterval(drawMatrix, 45);
+
+        // Copy to Clipboard
+        function copyCode(elementId, btn) {
+            const text = document.getElementById(elementId).innerText;
+            navigator.clipboard.writeText(text).then(() => {
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '✅ <span>Copied!</span>';
+                btn.classList.add('bg-emerald-500/20', 'text-emerald-400', 'border-emerald-500/40');
+                
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.classList.remove('bg-emerald-500/20', 'text-emerald-400', 'border-emerald-500/40');
+                }, 2000);
+            });
+        }
+
+        // Download File Function
+        function downloadConfig(elementId, filename) {
+            const text = document.getElementById(elementId).innerText;
+            const element = document.createElement('a');
+            const file = new Blob([text], {type: 'text/plain'});
+            element.href = URL.createObjectURL(file);
+            element.download = filename;
+            document.body.appendChild(element);
+            element.click();
+            document.body.removeChild(element);
+        }
+    </script>
+
+    <!-- تأثير الانتقال السلس وشريط التحميل -->
+    <div id="page-transition-overlay" class="fixed inset-0 bg-[#080d1a] z-[9999] pointer-events-none opacity-100 transition-opacity duration-500"></div>
+    <div id="top-loader" class="fixed top-0 left-0 h-1 bg-gradient-to-r from-cyan-500 via-sky-400 to-indigo-500 z-[10000] transition-all duration-300 w-0"></div>
+
+    <script>
+        window.addEventListener('DOMContentLoaded', () => {
+            const overlay = document.getElementById('page-transition-overlay');
+            overlay.style.opacity = '0';
+            setTimeout(() => { 
+                overlay.style.display = 'none'; 
+            }, 500);
+        });
+
+        document.addEventListener('click', e => {
+            const link = e.target.closest('a');
+            if (link && link.href && link.href.startsWith(window.location.origin) && !link.target && !link.getAttribute('download') && !link.href.includes('#')) {
+                e.preventDefault();
+                const targetUrl = link.href;
+
+                const loader = document.getElementById('top-loader');
+                loader.style.width = '80%';
+
+                const overlay = document.getElementById('page-transition-overlay');
+                overlay.style.display = 'block';
+                setTimeout(() => { 
+                    overlay.style.opacity = '1'; 
+                }, 10);
+
+                setTimeout(() => {
+                    window.location.href = targetUrl;
+                }, 350);
+            }
+        });
+    </script>
+</body>
+</html>

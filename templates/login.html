@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CloudShield Pro - Advanced SOC Login</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+        
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #010612;
+            overflow-x: hidden;
+        }
+
+        /* كانفاس خلفية الأرقام المتحركة */
+        #matrixCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -3;
+            opacity: 0.25;
+            pointer-events: none;
+        }
+
+        .cyber-bg {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-image: 
+                linear-gradient(rgba(10, 20, 40, 0.4) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(10, 20, 40, 0.4) 1px, transparent 1px);
+            background-size: 50px 50px;
+            z-index: -2;
+        }
+
+        .ambient-glow {
+            position: fixed;
+            width: 800px; height: 800px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(6, 182, 212, 0.08) 0%, rgba(10, 20, 40, 0) 70%);
+            z-index: -1;
+            filter: blur(80px);
+            pointer-events: none;
+        }
+
+        /* 🛡️ أنيميشن ظهور كارت اللوجن بعد شاشة الإنترو */
+        .glass-panel {
+            background: rgba(10, 20, 40, 0.35);
+            backdrop-filter: blur(40px);
+            -webkit-backdrop-filter: blur(40px);
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            position: relative;
+            opacity: 0;
+            transform: scale(0.95) translateY(20px);
+            transition: opacity 1s cubic-bezier(0.16, 1, 0.3, 1), transform 1s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        /* كلاس تفعيل ظهور كارت اللوجن بنعومة */
+        .glass-panel.show-panel {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+        }
+
+        .glass-panel::before {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            border-radius: 26px;
+            background: conic-gradient(from 0deg, transparent, #06b6d4, transparent, transparent);
+            z-index: -1;
+            filter: blur(8px);
+            opacity: 0.3;
+        }
+
+        .feature-item {
+            transition: all 0.3s ease;
+        }
+        .feature-item:hover {
+            background: rgba(6, 182, 212, 0.06);
+            border-color: rgba(6, 182, 212, 0.2);
+        }
+
+        @keyframes pulseActive {
+            0% { box-shadow: 0 0 5px rgba(16, 185, 129, 0.3); }
+            50% { box-shadow: 0 0 15px rgba(16, 185, 129, 0.5); }
+            100% { box-shadow: 0 0 5px rgba(16, 185, 129, 0.3); }
+        }
+        .active-pulse { animation: pulseActive 2s infinite; }
+
+        /* 🛡️ شاشة الانترو السيبرانية ذات الانتقال السلس */
+        #introLoader {
+            position: fixed;
+            inset: 0;
+            background-color: rgba(1, 6, 18, 0.88);
+            backdrop-filter: blur(14px);
+            z-index: 99999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.9s cubic-bezier(0.16, 1, 0.3, 1), transform 1.1s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        /* انيميشن حركة الشعار لأسفل أثناء التحميل */
+        .intro-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            animation: slideDownIntro 2.2s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+        }
+
+        @keyframes slideDownIntro {
+            0% {
+                transform: translateY(-60px);
+                opacity: 0;
+            }
+            30% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(30px);
+                opacity: 1;
+            }
+        }
+
+        .intro-shield-glow {
+            animation: shieldPulse 1.8s infinite ease-in-out;
+        }
+
+        @keyframes shieldPulse {
+            0%, 100% { transform: scale(1); filter: drop-shadow(0 0 15px rgba(6, 182, 212, 0.4)); }
+            50% { transform: scale(1.08); filter: drop-shadow(0 0 35px rgba(6, 182, 212, 0.9)); }
+        }
+
+        .radar-spinner {
+            border: 2px solid transparent;
+            border-top-color: #06b6d4;
+            border-right-color: #38bdf8;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-black text-gray-200">
+
+    <!-- 🚀 Cyber Splash Intro Loader (انتقال سلس بانزلاق وانفتاح زجاجي) -->
+    <div id="introLoader">
+        <div class="intro-content">
+            <div class="relative flex items-center justify-center mb-6">
+                <!-- رادار يدور حول الشعار -->
+                <div class="radar-spinner absolute w-36 h-36"></div>
+                <div class="radar-spinner absolute w-44 h-44 opacity-40" style="animation-duration: 2s; animation-direction: reverse;"></div>
+                
+                <!-- اللوجو النيون المتحرك -->
+                <div class="p-5 rounded-2xl bg-cyan-950/40 border border-cyan-500/30 text-cyan-400 text-5xl intro-shield-glow">
+                    🛡️
+                </div>
+            </div>
+
+            <h1 class="text-3xl font-extrabold tracking-tight text-white flex items-center gap-2 mb-2">
+                CloudShield <span class="text-xs bg-cyan-500/10 text-cyan-400 px-3 py-1 rounded-full border border-cyan-500/30 font-semibold font-mono">AI Pro</span>
+            </h1>
+
+            <!-- نص أمن سيبراني متحرك -->
+            <p id="introStatusText" class="font-mono text-xs text-cyan-400/80 tracking-widest uppercase mt-2">INITIALIZING SOC KERNEL...</p>
+            
+            <!-- شريط تقدم التحميل -->
+            <div class="w-52 h-1 bg-gray-900 rounded-full mt-6 overflow-hidden border border-gray-800">
+                <div id="introProgressBar" class="h-full bg-gradient-to-r from-cyan-500 to-blue-500 w-0 transition-all duration-300"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- خلفية الأرقام المتحركة (Matrix Rain) -->
+    <canvas id="matrixCanvas"></canvas>
+
+    <div class="cyber-bg"></div>
+    <div class="ambient-glow" style="top: -200px; left: -200px;"></div>
+    <div class="ambient-glow" style="bottom: -200px; right: -200px; background: radial-gradient(circle, rgba(56, 189, 248, 0.05) 0%, rgba(10, 20, 40, 0) 70%);"></div>
+
+    <div class="flex items-center justify-center min-h-screen p-6">
+        <div id="loginCard" class="glass-panel w-full max-w-6xl flex shadow-lg hover:shadow-2xl transition-shadow duration-300">
+            <!-- Left Panel: Product Identity -->
+            <div class="w-1/2 p-12 border-r border-gray-800/60 relative flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between mb-10">
+                        <div class="flex items-center gap-3">
+                            <div class="p-2 rounded-xl bg-cyan-950/30 border border-cyan-500/20 text-cyan-400 text-xl">
+                                🛡️
+                            </div>
+                            <h1 class="text-3xl font-bold tracking-tight text-white flex items-baseline gap-2">
+                                CloudShield <span class="text-base font-medium px-2 py-0.5 rounded-full bg-cyan-950/50 text-cyan-300 border border-cyan-500/30">AI Pro</span>
+                            </h1>
+                        </div>
+                    </div>
+
+                    <p class="text-[11px] text-gray-400 uppercase tracking-wider mb-6">Security Operations Center</p>
+                    <h2 class="text-3xl font-semibold text-white leading-snug mb-4">Enterprise Security Platform</h2>
+                    <p class="text-sm text-gray-400 leading-relaxed mb-10 max-w-md">Autonomous SSL verification, server security profiling, and instant AI-driven configuration patch generation.</p>
+
+                    <div class="space-y-4 mb-8">
+                        <div class="feature-item flex items-center gap-4 p-4 rounded-xl border border-gray-800/80 bg-gray-900/50">
+                            <span class="text-cyan-400 text-xl">⚡</span>
+                            <div>
+                                <p class="text-sm font-semibold text-gray-200">Automated Remediation</p>
+                                <p class="text-xs text-gray-500">Generate Nginx & Apache fix snippets instantly</p>
+                            </div>
+                        </div>
+                        <div class="feature-item flex items-center gap-4 p-4 rounded-xl border border-gray-800/80 bg-gray-900/50">
+                            <span class="text-green-400 text-xl">🔒</span>
+                            <div>
+                                <p class="text-sm font-semibold text-gray-200">Real-Time SSL Audit</p>
+                                <p class="text-xs text-gray-500">Deep HTTP header profiling & threat scoring</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-6 text-xs text-gray-500 pt-6 border-t border-gray-800/60">
+                    <p>©️ 2026 CloudShield AI</p>
+                    <div class="active-pulse flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950/60 border border-emerald-500/30 text-emerald-300">
+                        <div class="w-1.5 h-1.5 rounded-full bg-emerald-400"></div>
+                        Engine Active
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel: Authentication Form -->
+            <div class="w-1/2 p-12 bg-gray-950/40 relative flex flex-col justify-center">
+                <p class="text-[11px] text-gray-400 uppercase tracking-wider mb-2">System Authentication <span class="text-cyan-400 font-medium ml-2">[v2.4]</span></p>
+                <h3 class="text-2xl font-semibold text-white mb-6">Enter your security credentials</h3>
+
+                <!-- Flash Messages -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="mb-4 p-3 rounded-xl text-xs font-semibold border 
+                                {% if category == 'success' %}bg-green-500/10 text-green-400 border-green-500/30
+                                {% else %}bg-red-500/10 text-red-400 border-red-500/30{% endif %}">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                <!-- Form connected to Flask Backend -->
+                <form method="POST" class="space-y-6">
+                    <!-- User ID Input Group -->
+                    <div class="space-y-2">
+                        <label class="text-xs font-semibold text-gray-300 uppercase tracking-wide">User Identification / Email</label>
+                        <div class="flex items-center gap-3 relative pb-2 border-b border-gray-700/60 focus-within:border-cyan-500 transition-all duration-300">
+                            <span class="text-cyan-400 text-lg">📧</span>
+                            <input type="text" name="email_or_phone" required placeholder="admin@cloudshield.ai" class="flex-grow bg-transparent text-gray-100 placeholder-gray-600 focus:outline-none text-sm font-mono" autocomplete="username">
+                        </div>
+                    </div>
+
+                    <!-- Password Input Group -->
+                    <div class="space-y-2">
+                        <label class="text-xs font-semibold text-gray-300 uppercase tracking-wide">Access Passcode</label>
+                        <div class="flex items-center gap-3 relative pb-2 border-b border-gray-700/60 focus-within:border-cyan-500 transition-all duration-300">
+                            <span class="text-gray-500 text-lg">🔑</span>
+                            <input type="password" name="password" required placeholder="••••••••" class="flex-grow bg-transparent text-gray-100 placeholder-gray-600 focus:outline-none text-sm font-mono" autocomplete="current-password">
+                        </div>
+                    </div>
+
+                    <!-- Sign In button -->
+                    <button type="submit" class="w-full flex items-center justify-center gap-3 p-4 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-cyan-500/25 transition-all duration-300 active:scale-95 cursor-pointer">
+                        <span>Authenticate Account</span>
+                        <span>➔</span>
+                    </button>
+                    
+                    <a href="{{ url_for('signup') }}" class="text-center block text-xs text-gray-500 hover:text-cyan-400 transition">Need authorization? <span class="font-medium text-cyan-400 underline">Request Account</span></a>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script حركة الأرقام والانتقال السلس بين الانترو واللوجن -->
+    <script>
+        // Intro Animation Script
+        window.addEventListener('DOMContentLoaded', () => {
+            const statusText = document.getElementById('introStatusText');
+            const progressBar = document.getElementById('introProgressBar');
+            const loader = document.getElementById('introLoader');
+            const loginCard = document.getElementById('loginCard');
+
+            const steps = [
+                { percent: '35%', text: 'INITIALIZING SOC KERNEL...' },
+                { percent: '75%', text: 'LOADING AI THREAT ENGINE...' },
+                { percent: '100%', text: 'SYSTEM SECURE. ACCESS GRANTED.' }
+            ];
+
+            setTimeout(() => {
+                progressBar.style.width = steps[0].percent;
+                statusText.innerText = steps[0].text;
+            }, 300);
+
+            setTimeout(() => {
+                progressBar.style.width = steps[1].percent;
+                statusText.innerText = steps[1].text;
+            }, 1000);
+
+            setTimeout(() => {
+                progressBar.style.width = steps[2].percent;
+                statusText.innerText = steps[2].text;
+            }, 1800);
+
+            // بدء حركة النزول للشعار وظهور كارت اللوجن في نفس الوقت
+            setTimeout(() => {
+                loader.style.opacity = '0';
+                loader.style.transform = 'translateY(100vh)'; // انزلاق اللوجو والإنترو لأسفل
+                
+                // تفعيل أنيميشن ظهور صفحة تسجيل الدخول بنعومة
+                loginCard.classList.add('show-panel');
+
+                setTimeout(() => {
+                    loader.style.display = 'none';
+                }, 1100);
+            }, 2400);
+        });
+
+        // Matrix Background Script
+        const canvas = document.getElementById('matrixCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        const chars = '010101010101ABCDEF0123456789X';
+        const fontSize = 14;
+        const columns = Math.floor(canvas.width / fontSize);
+        const drops = Array(columns).fill(1);
+
+        function drawMatrix() {
+            ctx.fillStyle = 'rgba(1, 6, 18, 0.15)'; 
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = '#06b6d4'; 
+            ctx.font = fontSize + 'px monospace';
+
+            for (let i = 0; i < drops.length; i++) {
+                const text = chars.charAt(Math.floor(Math.random() * chars.length));
+                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+
+                if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                    drops[i] = 0;
+                }
+                drops[i]++;
+            }
+        }
+
+        setInterval(drawMatrix, 45);
+
+        // Magnetic Glow Effect
+        const body = document.querySelector('body');
+        body.addEventListener('mousemove', (e) => {
+            const { clientX, clientY } = e;
+            const ambientGlows = document.querySelectorAll('.ambient-glow');
+            ambientGlows.forEach((glow, idx) => {
+                const speed = (idx + 1) * 20;
+                const x = (window.innerWidth - clientX * speed) / 100;
+                const y = (window.innerHeight - clientY * speed) / 100;
+                glow.style.transform = `translate(${x}px, ${y}px)`;
+            });
+        });
+    </script>
+</body>
+</html>
